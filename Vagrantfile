@@ -20,6 +20,9 @@ unless Vagrant.has_plugin?("vagrant-hosts")
 end
 
 Vagrant.configure('2') do |config|
+  ## Version of PE we are installing
+  config.pe_build.version = "#{PE_VERSION}"
+
   ## Increase our memory
   config.vm.synced_folder ".", "/vagrant", type: "nfs"
   config.vm.provider "vmware_fusion" do |v|
@@ -31,18 +34,20 @@ Vagrant.configure('2') do |config|
     master.vm.box = "jonnyx/centos7_vmware_nfs_base"
     ## Plugin defaults to 'master' as the hostname
     master.vm.hostname = 'master'
-    master.vm.network :private_network, ip: "192.168.34.10"#, auto_config: false
+    master.vm.network :private_network, ip: "192.168.34.10"
     master.vm.provision "shell", inline: $script
     master.vm.provision :hosts do |provisioner|
       provisioner.autoconfigure = true
       provisioner.add_host '192.168.34.10', [
-        'master',
         'master.example.com',
+        'master'
+      ]
+      provisioner.add_host '192.168.34.11', [
+        'agent1.example.com',
+        'agent1'
       ]
     end
 
-    ## Version of PE we are installing
-    config.pe_build.version = "#{PE_VERSION}"
     ## Install PE master, console, and DB
     master.vm.provision :pe_bootstrap do |provisioner|
       provisioner.role = :master
@@ -52,14 +57,15 @@ Vagrant.configure('2') do |config|
   ## Agent
   config.vm.define 'agent1' do |node|
     node.vm.box = "jonnyx/centos7_vmware_nfs_base"
-    node.vm.hostname = 'agent1.example.com'
+    #node.vm.hostname = 'agent1.example.com'
+    node.vm.hostname = 'agent1'
     node.vm.network :private_network, ip: "192.168.34.11"
     node.vm.provision "shell", inline: $script
     node.vm.provision :hosts do |provisioner|
       provisioner.autoconfigure = true
       provisioner.add_host '192.168.34.10', [
-        'master',
         'master.example.com',
+        'master',
         'puppet'
       ]
     end
